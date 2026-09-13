@@ -14,7 +14,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="spine-csharp">
       <HintPath>..\..\..\spine-runtimes\spine-csharp\bin\Release\spine-csharp.dll</HintPath>
     </Reference>
   </ItemGroup>
