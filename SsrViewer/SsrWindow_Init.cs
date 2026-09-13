@@ -202,8 +202,9 @@ namespace SsrViewer
 
         private const string lang = "jp";
 
-        private void LoadVoices(string voiceDir)
+        private void LoadVoices()
         {
+            if (voiceDir == null) return;
             foreach (string voicePath in Directory.GetFiles(Path.Combine(voiceDir, lang), "*.wav"))
             {
                 int id = int.Parse(Path.GetFileNameWithoutExtension(voicePath)[3..]);

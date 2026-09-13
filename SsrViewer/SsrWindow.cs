@@ -19,7 +19,7 @@ namespace SsrViewer
     {
         private readonly string skelPath;
         private readonly string atlasPath;
-        private readonly string? voiceDir;
+        private string? voiceDir;
 
         private Skeleton skeleton = null!;
         private AnimationState animationState = null!;
@@ -72,8 +72,7 @@ namespace SsrViewer
             this.atlasPath = atlasPath;
             this.voiceDir = voiceDir;
 
-            if (voiceDir != null)
-                LoadVoices(voiceDir);
+            LoadVoices();
 
             Instance = this;
         }
@@ -247,6 +246,17 @@ namespace SsrViewer
                     if (result == null) return;
                     Program.OpenSsrWindow(result, Location);
                     Close();
+                };
+
+                menu.Items.Add("Import Voices").Click += (s, e) =>
+                {
+                    var dialog = new FolderBrowserDialog();
+                    var result = dialog.ShowDialog();
+                    if (result != DialogResult.OK) return;
+                    voiceDir = dialog.SelectedPath;
+                    LoadVoices();
+                    if (voices.TryGetValue("Greet", out var player))
+                        player.Play();
                 };
 
                 menu.Items.Add(new ToolStripSeparator());
