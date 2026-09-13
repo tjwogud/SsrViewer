@@ -109,6 +109,8 @@ namespace SsrViewer
 
             animationState.SetAnimation(0, "Relax", true);
 
+            skeleton.ScaleX = Scale;
+            skeleton.ScaleY = Scale;
             skeleton.UpdateWorldTransform();
         }
 

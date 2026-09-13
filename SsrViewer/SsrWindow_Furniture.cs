@@ -2,6 +2,7 @@
 using SsrViewer.Properties;
 using System;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 
 namespace SsrViewer
@@ -23,7 +24,6 @@ namespace SsrViewer
                 this.type = type;
 
                 StartPosition = FormStartPosition.CenterScreen;
-                Size = new(500, 300);
                 FormBorderStyle = FormBorderStyle.None;
 
                 pictureBox = new();
@@ -34,17 +34,43 @@ namespace SsrViewer
                 BackColor = Color.LimeGreen;
                 TransparencyKey = Color.LimeGreen;
 
+                UpdateScale();
+            }
+
+            private static Bitmap ResizeImage(Bitmap image, Size size)
+            {
+                var b = new Bitmap(size.Width, size.Height);
+                using Graphics g = Graphics.FromImage(b);
+                g.InterpolationMode = InterpolationMode.NearestNeighbor;
+                g.DrawImage(image, 0, 0, size.Width, size.Height);
+                return b;
+            }
+
+            public void UpdateScale()
+            {
+                Size = new((int)(500 * SsrWindow.Scale), (int)(300 * SsrWindow.Scale));
+
+                Bitmap image, highlightedImage;
+
                 switch (type)
                 {
                     case Type.Chair:
-                        BackgroundImage = Resources.chair;
-                        pictureBox.Image = Resources.highlighted_chair;
+                        image = Resources.chair;
+                        highlightedImage = Resources.highlighted_chair;
                         break;
                     case Type.Bed:
-                        BackgroundImage = Resources.bed;
-                        pictureBox.Image = Resources.highlighted_bed;
+                        image = Resources.bed;
+                        highlightedImage = Resources.highlighted_bed;
                         break;
+                    default:
+                        return;
                 }
+
+                image = ResizeImage(image, Size);
+                highlightedImage = ResizeImage(highlightedImage, Size);
+
+                BackgroundImage = image;
+                pictureBox.Image = highlightedImage;
             }
 
             public Type GetFType()
@@ -93,8 +119,6 @@ namespace SsrViewer
                     menu.Items.Add("Delete").Click += (s, e) =>
                     {
                         Close();
-                        Dispose();
-                        Instance!.GetDownFromFurnitureIfYouCan(this);
                     };
 
                     var cursorPosition = MousePosition;
@@ -120,6 +144,13 @@ namespace SsrViewer
             private static Point Sub(Point a, Point b)
             {
                 return new(a.X - b.X, a.Y - b.Y);
+            }
+
+            protected override void OnFormClosing(FormClosingEventArgs e)
+            {
+                base.OnFormClosing(e);
+                Instance!.GetDownFromFurnitureIfYouCan(this);
+                Instance!.DeleteFurniture(this);
             }
         }
     }

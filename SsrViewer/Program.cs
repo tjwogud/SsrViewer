@@ -1,6 +1,7 @@
 ﻿using OpenTK.Mathematics;
 using System;
 using System.IO;
+using System.Windows.Forms;
 
 namespace SsrViewer
 {
@@ -16,7 +17,7 @@ namespace SsrViewer
         [STAThread]
         static void Main()
         {
-            OpenSsrWindow(@"C:\Users\tkdc\Downloads\arknightsPresets\sussurro", SsrWindow.GetDesktopSize() / 2 - new Vector2i(800, 800));
+            OpenSsrWindow(SelectSpine()!, SsrWindow.GetDesktopSize() / 2 - new Vector2i(800, 800));
             while (available)
             {
                 available = false;
@@ -25,6 +26,17 @@ namespace SsrViewer
                     window.Location = nextLocation.Value;
                 window.Run();
             }
+        }
+
+        public static string? SelectSpine()
+        {
+            var dialog = new OpenFileDialog { Filter = "Png|*.png" };
+            var result = dialog.ShowDialog();
+            if (result != DialogResult.OK) return null;
+            var file = dialog.FileName;
+            if (Path.HasExtension(file))
+                file = file[..^Path.GetExtension(file).Length];
+            return file;
         }
 
         public static void OpenSsrWindow(string fileNameWithoutExt, Vector2i? location = null)
@@ -53,6 +65,11 @@ namespace SsrViewer
                     voiceDir = withoutSkin;
             }
 
+            OpenSsrWindow(skelPath, atlasPath, voiceDir, location);
+        }
+
+        public static void OpenSsrWindow(string skelPath, string atlasPath, string? voiceDir = null, Vector2i? location = null)
+        {
             nextSkelPath = skelPath;
             nextAtlasPath = atlasPath;
             nextVoiceDir = voiceDir;

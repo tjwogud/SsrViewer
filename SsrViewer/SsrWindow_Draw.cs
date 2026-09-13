@@ -96,9 +96,9 @@ namespace SsrViewer
             {
                 float progress = MathF.Min(1, (float)(stopwatch.Elapsed.TotalSeconds - specialGuageTime) / (specialTime - specialGuageTime));
                 var mouse = new Vector2(MousePosition.X - Size.X / 2, Size.Y * 4 / 5f - MousePosition.Y);
-                DrawDonutArc(mouse.X, mouse.Y, 22, 30, 1, new(0.5f, 0.5f, 0.5f, 1));
+                DrawDonutArc(mouse.X, mouse.Y, 22 * Scale, 30 * Scale, 1, new(0.5f, 0.5f, 0.5f, 1));
                 Vector4 color = progress == 1 ? new(0.3f, 0.85f, 0.3f, 1) : new(0.8f, 0.8f, 0.8f, 1);
-                DrawDonutArc(mouse.X, mouse.Y, 22, 30, progress, color);
+                DrawDonutArc(mouse.X, mouse.Y, 22 * Scale, 30 * Scale, progress, color);
             }
 
             UpdateLayeredWindow();

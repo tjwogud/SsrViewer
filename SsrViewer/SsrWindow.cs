@@ -17,7 +17,9 @@ namespace SsrViewer
 {
     internal partial class SsrWindow : GameWindow
     {
-        private readonly string skelPath, atlasPath;
+        private readonly string skelPath;
+        private readonly string atlasPath;
+        private readonly string? voiceDir;
 
         private Skeleton skeleton = null!;
         private AnimationState animationState = null!;
@@ -41,9 +43,11 @@ namespace SsrViewer
 
         private Dictionary<string, SoundPlayer> voices = [];
 
-        private static List<Furniture> chairList = [];
+        private static List<Furniture> furnitures = [];
 
         public static SsrWindow? Instance { get; private set; }
+
+        public static float Scale { get; private set; } = 1;
 
         internal SsrWindow(string skelPath, string atlasPath, string? voiceDir = null) : base(
             new GameWindowSettings() {
@@ -52,7 +56,7 @@ namespace SsrViewer
             new NativeWindowSettings()
             {
                 Title = "Ssr Viewer",
-                ClientSize = (1600, 1200),
+                ClientSize = new((int)(1600 * Scale), (int)(1000 * Scale)),
 
                 API = ContextAPI.OpenGL,
                 APIVersion = new(3, 3),
@@ -66,6 +70,7 @@ namespace SsrViewer
         {
             this.skelPath = skelPath;
             this.atlasPath = atlasPath;
+            this.voiceDir = voiceDir;
 
             if (voiceDir != null)
                 LoadVoices(voiceDir);
@@ -172,6 +177,11 @@ namespace SsrViewer
             }
         }
 
+        private void DeleteFurniture(Furniture furniture)
+        {
+            furnitures.Remove(furniture);
+        }
+
         protected override void OnMouseUp(MouseButtonEventArgs e)
         {
             if (e.Button == MouseButton.Left)
@@ -222,7 +232,7 @@ namespace SsrViewer
                     animationState.SetAnimation(0, "Relax", true);
                 }
 
-                foreach (Furniture chair in chairList)
+                foreach (Furniture chair in furnitures)
                 {
                     chair.ToggleHighlight(false);
                 }
@@ -233,14 +243,9 @@ namespace SsrViewer
 
                 menu.Items.Add("Change Spine").Click += (s, e) =>
                 {
-                    var dialog = new OpenFileDialog { Filter = "Png|*.png" };
-                    var result = dialog.ShowDialog();
-                    if (result != DialogResult.OK) return;
-                    var file = dialog.FileName;
-                    if (Path.HasExtension(file))
-                        file = file[..^Path.GetExtension(file).Length];
-
-                    Program.OpenSsrWindow(file, Location);
+                    var result = Program.SelectSpine();
+                    if (result == null) return;
+                    Program.OpenSsrWindow(result, Location);
                     Close();
                 };
 
@@ -251,14 +256,36 @@ namespace SsrViewer
                     var thread = new Thread(() =>
                     {
                         var chair = new Furniture(type);
-                        lock (chairList)
-                            chairList.Add(chair);
+                        lock (furnitures)
+                            furnitures.Add(chair);
                         chair.ShowDialog();
                     });
                     thread.SetApartmentState(ApartmentState.STA);
                     thread.IsBackground = true;
                     thread.Start();
                 }
+
+                var scaleDropdown = new ToolStripMenuItem("Change Scale");
+
+                for (int i = 25; i <= 150; i += 25)
+                {
+                    int captured = i;
+                    scaleDropdown.DropDownItems.Add($"{i}%").Click += (s, e) =>
+                    {
+                        var prevCenter = Location + new Vector2i(Size.X / 2, Size.Y * 4 / 5);
+                        Scale = captured / 100f;
+                        var location = prevCenter - new Vector2i((int)(800 * Scale), (int)(800 * Scale));
+                        Program.OpenSsrWindow(skelPath, atlasPath, voiceDir, location);
+                        foreach (var furniture in furnitures) {
+                            furniture.UpdateScale();
+                        }
+                        Close();
+                    };
+                }
+
+                menu.Items.Add(scaleDropdown);
+
+                menu.Items.Add(new ToolStripSeparator());
 
                 menu.Items.Add("Spawn Chair").Click += (s, e) => SpawnFurniture(Furniture.Type.Chair);
 
@@ -289,10 +316,10 @@ namespace SsrViewer
                 if (animationState.GetCurrent(0).Animation.Name != "Move")
                     animationState.SetAnimation(0, "Move", true);
 
-                selected = chairList.MinBy(f => (GetAbsMousePosition() - f.GetLocation()).EuclideanLength);
+                selected = furnitures.MinBy(f => (GetAbsMousePosition() - f.GetLocation()).EuclideanLength);
                 if (selected != null && (GetAbsMousePosition() - selected.GetLocation()).EuclideanLength > 50)
                     selected = null;
-                foreach (Furniture cur in chairList)
+                foreach (Furniture cur in furnitures)
                 {
                     cur.ToggleHighlight(cur == selected);
                 }
