@@ -17,6 +17,7 @@ namespace SsrViewer
         [STAThread]
         static void Main()
         {
+            ApplicationConfiguration.Initialize();
             OpenSsrWindow(SelectSpine()!, SsrWindow.GetDesktopSize() / 2 - new Vector2i(800, 800));
             while (available)
             {

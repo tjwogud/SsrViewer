@@ -4,11 +4,13 @@ using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Spine;
+using SsrViewer.Properties;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Media;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
 
@@ -279,18 +281,23 @@ namespace SsrViewer
                 for (int i = 25; i <= 150; i += 25)
                 {
                     int captured = i;
-                    scaleDropdown.DropDownItems.Add($"{i}%").Click += (s, e) =>
+                    var item = scaleDropdown.DropDownItems.Add($"{i}%");
+                    item.Click += (s, e) => ChangeScale(captured / 100f);
+                    if (i == Scale * 100)
                     {
-                        var prevCenter = Location + new Vector2i(Size.X / 2, Size.Y * 4 / 5);
-                        Scale = captured / 100f;
-                        var location = prevCenter - new Vector2i((int)(800 * Scale), (int)(800 * Scale));
-                        Program.OpenSsrWindow(skelPath, atlasPath, voiceDir, location);
-                        foreach (var furniture in furnitures) {
-                            furniture.UpdateScale();
-                        }
-                        Close();
-                    };
+                        item.Image = Resources.check;
+                    }
                 }
+
+                var custom = new ToolStripTextBox("Custom");
+                custom.KeyDown += (s, e) =>
+                {
+                    if (e.KeyCode != System.Windows.Forms.Keys.Enter) return;
+                    if (!int.TryParse(custom.Text, out int i) || i <= 0) return;
+                    ChangeScale(i / 100f);
+                };
+                custom.TextBox.BorderStyle = BorderStyle.FixedSingle;
+                scaleDropdown.DropDownItems.Add(custom);
 
                 menu.Items.Add(scaleDropdown);
 
@@ -308,6 +315,19 @@ namespace SsrViewer
 
                 menu.Show(cursorPosition);
             }
+        }
+
+        private void ChangeScale(float scale)
+        {
+            var prevCenter = Location + new Vector2i(Size.X / 2, Size.Y * 4 / 5);
+            Scale = scale;
+            var location = prevCenter - new Vector2i((int)(800 * Scale), (int)(800 * Scale));
+            Program.OpenSsrWindow(skelPath, atlasPath, voiceDir, location);
+            foreach (var furniture in furnitures)
+            {
+                furniture.UpdateScale();
+            }
+            Close();
         }
 
         private Furniture? selected;
