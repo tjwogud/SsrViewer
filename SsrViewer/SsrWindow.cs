@@ -65,6 +65,7 @@ namespace SsrViewer
             {
                 CreateParams cp = base.CreateParams;
                 cp.ExStyle |= WS_EX_LAYERED;
+                cp.ExStyle |= WS_EX_TOOLWINDOW;
                 return cp;
             }
         }
@@ -75,6 +76,7 @@ namespace SsrViewer
             ClientSize = new(ScaledWidth, ScaledHeight);
             StartPosition = FormStartPosition.CenterScreen;
             FormBorderStyle = FormBorderStyle.None;
+            ShowInTaskbar = false;
 
             glControl = new GLControl
             {

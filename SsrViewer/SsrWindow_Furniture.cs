@@ -25,6 +25,7 @@ namespace SsrViewer
 
                 StartPosition = FormStartPosition.CenterScreen;
                 FormBorderStyle = FormBorderStyle.None;
+                ShowInTaskbar = false;
 
                 pictureBox = new();
                 pictureBox.Dock = DockStyle.Fill;
