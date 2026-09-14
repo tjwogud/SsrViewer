@@ -48,7 +48,7 @@ namespace SsrViewer
 
             public void UpdateScale()
             {
-                Size = new((int)(500 * SsrWindow.Scale), (int)(300 * SsrWindow.Scale));
+                Size = new(new Point(500, 300) * SsrScale);
 
                 Bitmap image, highlightedImage;
 
@@ -90,11 +90,9 @@ namespace SsrViewer
                 TopMost = true;
             }
 
-            public Vector2i GetLocation()
+            public Point GetCenterLocation()
             {
-                var pos = Location;
-                var size = Size;
-                return new(pos.X + size.Width / 2, pos.Y + size.Height / 2);
+                return Location + new Point(Size.Width / 2, Size.Height / 2);
             }
 
             private bool drag;

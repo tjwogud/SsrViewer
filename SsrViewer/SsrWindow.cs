@@ -1,22 +1,22 @@
-﻿using OpenTK.Graphics.OpenGL4;
+﻿using OpenTK.GLControl;
+using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
-using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Spine;
 using SsrViewer.Properties;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.Linq;
 using System.Media;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
 
 namespace SsrViewer
 {
-    internal partial class SsrWindow : GameWindow
+    internal partial class SsrWindow : Form
     {
         private readonly string skelPath;
         private readonly string atlasPath;
@@ -48,27 +48,55 @@ namespace SsrViewer
 
         public static SsrWindow? Instance { get; private set; }
 
-        public static float Scale { get; private set; } = 1;
+        public static float SsrScale { get; private set; } = 1;
+        public static int ScaledWidth => (int)(1600 * SsrScale);
+        public static int ScaledHeight => (int)(1000 * SsrScale);
+        public static Point CenterOffset => new(ScaledWidth / 2, ScaledHeight * 4 / 5);
 
-        internal SsrWindow(string skelPath, string atlasPath, string? voiceDir = null) : base(
-            new GameWindowSettings() {
-                UpdateFrequency = 60
-            },
-            new NativeWindowSettings()
-            {
-                Title = "Ssr Viewer",
-                ClientSize = new((int)(1600 * Scale), (int)(1000 * Scale)),
+        private System.Windows.Forms.Timer timer = null!;
+        private DateTime lastUpdate;
 
-                API = ContextAPI.OpenGL,
-                APIVersion = new(3, 3),
-                Profile = ContextProfile.Core,
+        private GLControl glControl;
+        private Form glForm;
 
-                AlphaBits = 8,
-
-                WindowBorder = WindowBorder.Hidden,
-                StartVisible = false
-            })
+        protected override CreateParams CreateParams
         {
+            get
+            {
+                CreateParams cp = base.CreateParams;
+                cp.ExStyle |= WS_EX_LAYERED;
+                return cp;
+            }
+        }
+
+        internal SsrWindow(string skelPath, string atlasPath, string? voiceDir = null)
+        {
+            Text = "Ssr Viewer";
+            ClientSize = new(ScaledWidth, ScaledHeight);
+            StartPosition = FormStartPosition.CenterScreen;
+            FormBorderStyle = FormBorderStyle.None;
+
+            glControl = new GLControl
+            {
+                API = ContextAPI.OpenGL,
+                APIVersion = new(3, 3, 0),
+                Profile = ContextProfile.Core,
+                Dock = DockStyle.Fill
+            };
+            glControl.Load += GLControl_Load;
+
+            glForm = new Form
+            {
+                FormBorderStyle = FormBorderStyle.None,
+                ShowInTaskbar = false,
+
+                Location = new Point(-20_000, -20_000),
+                Size = new Size(1, 1)
+            };
+
+            glForm.Controls.Add(glControl);
+            glForm.ShowAsync();
+
             this.skelPath = skelPath;
             this.atlasPath = atlasPath;
             this.voiceDir = voiceDir;
@@ -78,9 +106,17 @@ namespace SsrViewer
             Instance = this;
         }
 
-        protected override void OnLoad()
+        protected override void OnHandleCreated(EventArgs e)
         {
-            base.OnLoad();
+            base.OnHandleCreated(e);
+
+            SetWindowPos(Handle, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
+        }
+
+        private void GLControl_Load(object? sender, EventArgs e)
+        {
+            SetWindowPos(Handle, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
+            glControl.MakeCurrent();
 
             GL.ClearColor(0, 0, 0, 0);
 
@@ -91,74 +127,61 @@ namespace SsrViewer
             CreateBuffers();
             LoadSkeleton();
 
-            CreateFramebuffer(Size.X, Size.Y);
-
-            GL.Viewport(0, 0, Size.X, Size.Y);
-
-            projection = Matrix4.CreateOrthographicOffCenter(
-                -Size.X / 2f, Size.X / 2f,
-                -Size.Y * 2 / 10f, Size.Y * 8 / 10f,
-                -1, 1
-            );
+            ChangeScale(SsrScale, false);
 
             CreateWhiteTexture();
 
-            unsafe
+            timer = new();
+            timer.Interval = 1000 / 60;
+            timer.Tick += (s, e) =>
             {
-                IntPtr hwnd = GLFW.GetWin32Window(WindowPtr);
+                var now = DateTime.UtcNow;
+                var deltaTime = (now - lastUpdate).TotalSeconds;
+                lastUpdate = now;
+                animationState.Update((float)deltaTime);
+                animationState.Apply(skeleton);
 
-                var style = GetWindowLongPtr(hwnd, GWL_EXSTYLE);
-                SetWindowLongPtr(hwnd, GWL_EXSTYLE, style | WS_EX_LAYERED);
+                skeleton.UpdateWorldTransform();
 
-                SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
-            }
-
-            OnUpdateFrame(default);
-            OnRenderFrame(default);
-            IsVisible = true;
+                RenderFrame();
+            };
+            timer.Start();
+            lastUpdate = DateTime.UtcNow;
 
             if (voices.TryGetValue("Greet", out var player))
                 player.Play();
         }
 
-        protected override void OnUpdateFrame(FrameEventArgs args)
-        {
-            animationState.Update((float)args.Time);
-            animationState.Apply(skeleton);
-
-            skeleton.UpdateWorldTransform();
-        }
-
         private bool drag;
-        private Vector2i offset;
-        private Vector2i prevMouse;
+        private Point offset;
+        private Point prevMouse;
         private bool moving;
-        private Stopwatch stopwatch = new();
+        private Stopwatch specialStopwatch = new();
 
         private const float specialGuageTime = 0.25f;
         private const float specialTime = 1;
 
-        protected override void OnMouseDown(MouseButtonEventArgs e)
+        protected override void OnMouseDown(MouseEventArgs e)
         {
-            if (e.Button == MouseButton.Left)
+            if (e.Button == MouseButtons.Left)
             {
                 if (!animationState.GetCurrent(0).Loop)
                     return;
                 GetDownFromFurnitureIfYouCan();
                 drag = true;
-                offset = Location - GetAbsMousePosition();
-                prevMouse = GetAbsMousePosition();
+                offset = Location - MousePosition;
+                prevMouse = MousePosition;
                 moving = false;
-                stopwatch.Restart();
+                specialStopwatch.Restart();
             }
         }
 
-        private void FollowFurnitureIfYouCan(Furniture furniture)
+        private void FollowFurnitureIfYouCan(Furniture? furniture)
         {
-            if (selected != furniture) return;
+            if (furniture == null || selected != furniture) return;
 
-            var pos = selected.GetLocation();
-            Location = pos - new Vector2i(Size.X / 2, Size.Y * 4 / 5);
+            var pos = selected.GetCenterLocation();
+            Location = pos - CenterOffset;
         }
 
         private void GetDownFromFurnitureIfYouCan(Furniture? furniture = null)
@@ -169,11 +192,7 @@ namespace SsrViewer
             {
                 animationState.SetAnimation(0, "Relax", true);
                 selected = null;
-                unsafe
-                {
-                    IntPtr hwnd = GLFW.GetWin32Window(WindowPtr);
-                    SetWindowLongPtr(hwnd, GWLP_HWNDPARENT, 0);
-                }
+                SetWindowLongPtr(Handle, GWLP_HWNDPARENT, 0);
             }
         }
 
@@ -182,22 +201,18 @@ namespace SsrViewer
             furnitures.Remove(furniture);
         }
 
-        protected override void OnMouseUp(MouseButtonEventArgs e)
+        protected override void OnMouseUp(MouseEventArgs e)
         {
-            if (e.Button == MouseButton.Left)
+            if (e.Button == MouseButtons.Left)
             {
-                var elapsed = stopwatch.Elapsed.TotalSeconds;
-                stopwatch.Reset();
+                var elapsed = specialStopwatch.Elapsed.TotalSeconds;
+                specialStopwatch.Reset();
                 if (!drag) return;
                 drag = false;
 
                 if (selected != null)
                 {
-                    unsafe
-                    {
-                        IntPtr hwnd = GLFW.GetWin32Window(WindowPtr);
-                        SetWindowLongPtr(hwnd, GWLP_HWNDPARENT, selected.Handle);
-                    }
+                    SetWindowLongPtr(Handle, GWLP_HWNDPARENT, selected.Handle);
                     FollowFurnitureIfYouCan(selected);
                     switch (selected.GetFType())
                     {
@@ -237,7 +252,7 @@ namespace SsrViewer
                     chair.ToggleHighlight(false);
                 }
             }
-            else if (e.Button == MouseButton.Right)
+            else if (e.Button == MouseButtons.Right)
             {
                 var menu = new ContextMenuStrip();
 
@@ -283,7 +298,7 @@ namespace SsrViewer
                     int captured = i;
                     var item = scaleDropdown.DropDownItems.Add($"{i}%");
                     item.Click += (s, e) => ChangeScale(captured / 100f);
-                    if (i == Scale * 100)
+                    if (i == SsrScale * 100)
                     {
                         item.Image = Resources.check;
                     }
@@ -317,36 +332,54 @@ namespace SsrViewer
             }
         }
 
-        private void ChangeScale(float scale)
+        private void ChangeScale(float scale, bool updateLocation = true)
         {
-            var prevCenter = Location + new Vector2i(Size.X / 2, Size.Y * 4 / 5);
-            Scale = scale;
-            var location = prevCenter - new Vector2i((int)(800 * Scale), (int)(800 * Scale));
-            Program.OpenSsrWindow(skelPath, atlasPath, voiceDir, location);
+            if (updateLocation)
+            {
+                var prevCenter = Location + CenterOffset;
+                SsrScale = scale;
+                Location = prevCenter - CenterOffset;
+            }
+
+            CreateFramebuffer(ScaledWidth, ScaledHeight);
+
+            GL.Viewport(0, 0, ScaledWidth, ScaledHeight);
+
+            projection = Matrix4.CreateOrthographicOffCenter(
+                -CenterOffset.X, CenterOffset.X,
+                CenterOffset.Y, -(ScaledHeight - CenterOffset.Y),
+                -1, 1
+            );
+
+            skeleton.ScaleX = SsrScale;
+            skeleton.ScaleY = SsrScale;
+            skeleton.UpdateWorldTransform();
+
             foreach (var furniture in furnitures)
             {
                 furniture.UpdateScale();
             }
-            Close();
+
+            FollowFurnitureIfYouCan(selected);
         }
 
         private Furniture? selected;
 
-        protected override void OnMouseMove(MouseMoveEventArgs e)
+        protected override void OnMouseMove(MouseEventArgs e)
         {
             if (drag)
             {
-                if ((prevMouse - GetAbsMousePosition()).EuclideanLength > 5)
+                if ((prevMouse - MousePosition).Length > 5)
                     moving = true;
 
                 if (!moving) return;
 
-                Location = offset + GetAbsMousePosition();
+                Location = offset + MousePosition;
                 if (animationState.GetCurrent(0).Animation.Name != "Move")
                     animationState.SetAnimation(0, "Move", true);
 
-                selected = furnitures.MinBy(f => (GetAbsMousePosition() - f.GetLocation()).EuclideanLength);
-                if (selected != null && (GetAbsMousePosition() - selected.GetLocation()).EuclideanLength > 50)
+                selected = furnitures.MinBy(f => (MousePosition - f.GetCenterLocation()).Length);
+                if (selected != null && (MousePosition  - selected.GetCenterLocation()).Length > 50)
                     selected = null;
                 foreach (Furniture cur in furnitures)
                 {
@@ -355,10 +388,12 @@ namespace SsrViewer
             }
         }
 
-        private Vector2i GetAbsMousePosition()
+        protected override void OnFormClosing(FormClosingEventArgs e)
         {
-            Vector2i mouse = new((int)MousePosition.X, (int)MousePosition.Y);
-            return mouse + Location;
+            base.OnFormClosing(e);
+
+            glForm.Close();
+            timer.Stop();
         }
     }
 }

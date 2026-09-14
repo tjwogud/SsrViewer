@@ -101,16 +101,14 @@ namespace SsrViewer
             var skeletonData = skeletonBinary.ReadSkeletonData(skelPath);
 
             skeleton = new Skeleton(skeletonData);
-            animationState = new AnimationState(
-                new AnimationStateData(skeletonData)
-            );
+            animationState = new AnimationState(new AnimationStateData(skeletonData));
 
             specialAnimAvailable = skeleton.Data.Animations.Any(anim => anim.Name == "Special");
 
             animationState.SetAnimation(0, "Relax", true);
+            animationState.Update(0);
+            animationState.Apply(skeleton);
 
-            skeleton.ScaleX = Scale;
-            skeleton.ScaleY = Scale;
             skeleton.UpdateWorldTransform();
         }
 
@@ -155,6 +153,9 @@ namespace SsrViewer
                 fboTexture,
                 0
             );
+
+            GL.DrawBuffer(DrawBufferMode.ColorAttachment0);
+            GL.ReadBuffer(ReadBufferMode.ColorAttachment0);
 
             fboDepth = GL.GenRenderbuffer();
 

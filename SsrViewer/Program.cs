@@ -1,5 +1,6 @@
 ﻿using OpenTK.Mathematics;
 using System;
+using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
 
@@ -10,7 +11,7 @@ namespace SsrViewer
         private static string nextSkelPath = null!;
         private static string nextAtlasPath = null!;
         private static string? nextVoiceDir = null;
-        private static Vector2i? nextLocation;
+        private static Point? nextLocation;
 
         private static bool available;
 
@@ -18,14 +19,16 @@ namespace SsrViewer
         static void Main()
         {
             ApplicationConfiguration.Initialize();
-            OpenSsrWindow(SelectSpine()!, SsrWindow.GetDesktopSize() / 2 - new Vector2i(800, 800));
+            OpenSsrWindow(SelectSpine()!);
             while (available)
             {
                 available = false;
-                using var window = new SsrWindow(nextSkelPath, nextAtlasPath, nextVoiceDir);
-                if (nextLocation != null)
+                var window = new SsrWindow(nextSkelPath, nextAtlasPath, nextVoiceDir);
+                if (nextLocation != null) {
+                    window.StartPosition = FormStartPosition.Manual;
                     window.Location = nextLocation.Value;
-                window.Run();
+                }
+                Application.Run(window);
             }
         }
 
@@ -40,7 +43,7 @@ namespace SsrViewer
             return file;
         }
 
-        public static void OpenSsrWindow(string fileNameWithoutExt, Vector2i? location = null)
+        public static void OpenSsrWindow(string fileNameWithoutExt, Point? location = null)
         {
             string skelPath;
             if (File.Exists(fileNameWithoutExt + ".skel"))
@@ -69,7 +72,7 @@ namespace SsrViewer
             OpenSsrWindow(skelPath, atlasPath, voiceDir, location);
         }
 
-        public static void OpenSsrWindow(string skelPath, string atlasPath, string? voiceDir = null, Vector2i? location = null)
+        public static void OpenSsrWindow(string skelPath, string atlasPath, string? voiceDir = null, Point? location = null)
         {
             nextSkelPath = skelPath;
             nextAtlasPath = atlasPath;

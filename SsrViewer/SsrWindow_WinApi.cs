@@ -2,7 +2,9 @@
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using System;
+using System.Drawing;
 using System.Runtime.InteropServices;
+using ErrorCode = OpenTK.Graphics.OpenGL4.ErrorCode;
 
 namespace SsrViewer
 {
@@ -42,7 +44,7 @@ namespace SsrViewer
             public byte AlphaFormat;
         }
 
-        [LibraryImport("user32.dll")]
+        [LibraryImport("user32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         private static partial bool UpdateLayeredWindow(
             IntPtr hwnd,
@@ -101,10 +103,10 @@ namespace SsrViewer
             IntPtr hdc, ref BITMAPINFOHEADER pbmi, uint iUsage,
             out IntPtr ppvBits, IntPtr hSection, uint dwOffset);
 
-        private unsafe void UpdateLayeredWindow()
+        private void UpdateLayeredWindow()
         {
-            int width = Size.X;
-            int height = Size.Y;
+            int width = ScaledWidth;
+            int height = ScaledHeight;
             int stride = width * 4;
 
             byte[] pixels = new byte[stride * height];
@@ -129,11 +131,7 @@ namespace SsrViewer
                 screenDc, ref bmi, 0,
                 out IntPtr bits, IntPtr.Zero, 0);
 
-            for (int y = 0; y < height; y++)
-            {
-                Marshal.Copy(pixels, (height - 1 - y) * stride,
-                    bits + y * stride, stride);
-            }
+            Marshal.Copy(pixels, 0, bits, pixels.Length);
 
             IntPtr oldBitmap = SelectObject(memoryDc, bitmapHandle);
 
@@ -147,14 +145,21 @@ namespace SsrViewer
                 AlphaFormat = AC_SRC_ALPHA
             };
 
-            IntPtr hwnd = GLFW.GetWin32Window(WindowPtr);
-            UpdateLayeredWindow(hwnd, screenDc, ref dst, ref size,
-                memoryDc, ref src, 0, ref blend, ULW_ALPHA);
+            var result = UpdateLayeredWindow(Handle, screenDc, ref dst, ref size,
+                memoryDc, ref src, 0, ref blend, ULW_ALPHA); 
+            
+            if (!result)
+            {
+                int error = Marshal.GetLastWin32Error();
+                throw new InvalidOperationException(
+                    $"UpdateLayeredWindow failed. Win32 error: {error}"
+                );
+            }
 
             SelectObject(memoryDc, oldBitmap);
             DeleteObject(bitmapHandle);
             DeleteDC(memoryDc);
-            _ = ReleaseDC(IntPtr.Zero, screenDc);
+            ReleaseDC(IntPtr.Zero, screenDc);
         }
 
         private const int WM_NCLBUTTONDOWN = 0xA1;
@@ -180,7 +185,7 @@ namespace SsrViewer
         [LibraryImport("gdi32.dll", EntryPoint = "GetDeviceCaps", SetLastError = true)]
         private static partial int GetDeviceCaps(nint hdc, int nIndex);
 
-        public static Vector2i GetDesktopSize()
+        public static Point GetDesktopSize()
         {
             var desktop = GetDC(0);
             return new(GetDeviceCaps(desktop, 118), GetDeviceCaps(desktop, 117));

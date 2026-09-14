@@ -3,6 +3,7 @@ using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using Spine;
 using System;
+using System.Windows.Forms;
 
 namespace SsrViewer
 {
@@ -31,8 +32,10 @@ namespace SsrViewer
             }
         }
 
-        protected override void OnRenderFrame(FrameEventArgs args)
+        private void RenderFrame()
         {
+            glControl.MakeCurrent();
+
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, fbo);
 
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
@@ -92,13 +95,13 @@ namespace SsrViewer
 
             clipper.ClipEnd();
 
-            if (!moving && stopwatch.Elapsed.TotalSeconds >= specialGuageTime)
+            if (!moving && specialStopwatch.Elapsed.TotalSeconds >= specialGuageTime)
             {
-                float progress = MathF.Min(1, (float)(stopwatch.Elapsed.TotalSeconds - specialGuageTime) / (specialTime - specialGuageTime));
-                var mouse = new Vector2(MousePosition.X - Size.X / 2, Size.Y * 4 / 5f - MousePosition.Y);
-                DrawDonutArc(mouse.X, mouse.Y, 22 * Scale, 30 * Scale, 1, new(0.5f, 0.5f, 0.5f, 1));
+                float progress = MathF.Min(1, (float)(specialStopwatch.Elapsed.TotalSeconds - specialGuageTime) / (specialTime - specialGuageTime));
+                var mouse = MousePosition - (Location + CenterOffset);
+                DrawDonutArc(mouse.X, -mouse.Y, 22 * SsrScale, 30 * SsrScale, 1, new(0.5f, 0.5f, 0.5f, 1));
                 Vector4 color = progress == 1 ? new(0.3f, 0.85f, 0.3f, 1) : new(0.8f, 0.8f, 0.8f, 1);
-                DrawDonutArc(mouse.X, mouse.Y, 22 * Scale, 30 * Scale, progress, color);
+                DrawDonutArc(mouse.X, -mouse.Y, 22 * SsrScale, 30 * SsrScale, progress, color);
             }
 
             UpdateLayeredWindow();
