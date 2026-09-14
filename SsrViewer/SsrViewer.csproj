@@ -15,7 +15,7 @@
 
   <ItemGroup>
     <Reference Include="spine-csharp">
-      <HintPath>..\deps\spine-csharp.dll</HintPath>
+      <HintPath>deps\spine-csharp.dll</HintPath>
     </Reference>
   </ItemGroup>
 
