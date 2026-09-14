@@ -117,7 +117,6 @@ namespace SsrViewer
 
         private void GLControl_Load(object? sender, EventArgs e)
         {
-            SetWindowPos(Handle, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
             glControl.MakeCurrent();
 
             GL.ClearColor(0, 0, 0, 0);
