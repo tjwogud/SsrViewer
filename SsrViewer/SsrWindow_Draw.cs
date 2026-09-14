@@ -1,9 +1,7 @@
 ﻿using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
-using OpenTK.Windowing.Common;
 using Spine;
 using System;
-using System.Windows.Forms;
 
 namespace SsrViewer
 {

@@ -1,5 +1,4 @@
-﻿using OpenTK.Mathematics;
-using SsrViewer.Properties;
+﻿using SsrViewer.Properties;
 using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;

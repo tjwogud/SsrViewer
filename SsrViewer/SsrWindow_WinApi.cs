@@ -1,10 +1,7 @@
 ﻿using OpenTK.Graphics.OpenGL4;
-using OpenTK.Mathematics;
-using OpenTK.Windowing.GraphicsLibraryFramework;
 using System;
 using System.Drawing;
 using System.Runtime.InteropServices;
-using ErrorCode = OpenTK.Graphics.OpenGL4.ErrorCode;
 
 namespace SsrViewer
 {
