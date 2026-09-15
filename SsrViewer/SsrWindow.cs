@@ -381,6 +381,46 @@ namespace SsrViewer
             }
         }
 
+#if DEBUG
+        protected override void OnKeyDown(KeyEventArgs e)
+        {
+            base.OnKeyDown(e);
+
+            if (e.Control && e.KeyCode == Keys.S)
+            {
+                var dialog = new SaveFileDialog { Filter = "Png|*.png" };
+
+                if (dialog.ShowDialog() != DialogResult.OK) return;
+
+                RenderFrame();
+                GL.BindFramebuffer(FramebufferTarget.Framebuffer, fbo);
+
+                int width = ScaledWidth;
+                int height = ScaledHeight;
+                int stride = width * 4;
+
+                byte[] pixels = new byte[stride * height];
+                GL.ReadPixels(0, 0, width, height,
+                    PixelFormat.Bgra,
+                    PixelType.UnsignedByte, pixels);
+
+                var bitmap = new Bitmap(width, height);
+
+                var data = bitmap.LockBits(
+                    new(0, 0, width, height),
+                    System.Drawing.Imaging.ImageLockMode.WriteOnly,
+                    System.Drawing.Imaging.PixelFormat.Format32bppArgb
+                );
+
+                System.Runtime.InteropServices.Marshal.Copy(pixels, 0, data.Scan0, pixels.Length);
+
+                bitmap.UnlockBits(data);
+
+                bitmap.Save(dialog.FileName);
+            }
+        }
+#endif
+
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
             base.OnFormClosing(e);
