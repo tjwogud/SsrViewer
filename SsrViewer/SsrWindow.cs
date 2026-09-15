@@ -65,6 +65,7 @@ namespace SsrViewer
                 CreateParams cp = base.CreateParams;
                 cp.ExStyle |= WS_EX_LAYERED;
                 cp.ExStyle |= WS_EX_TOOLWINDOW;
+                cp.ExStyle &= ~WS_EX_APPWINDOW;
                 return cp;
             }
         }
@@ -107,13 +108,6 @@ namespace SsrViewer
             Instance = this;
         }
 
-        protected override void OnHandleCreated(EventArgs e)
-        {
-            base.OnHandleCreated(e);
-
-            SetWindowPos(Handle, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
-        }
-
         private void GLControl_Load(object? sender, EventArgs e)
         {
             glControl.MakeCurrent();
@@ -150,6 +144,10 @@ namespace SsrViewer
 
             if (voices.TryGetValue("Greet", out var player))
                 player.Play();
+
+            TopMost = true;
+            BringToFront();
+            Activate();
         }
 
         private bool drag;

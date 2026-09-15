@@ -11,6 +11,7 @@ namespace SsrViewer
         private const int WS_EX_LAYERED = 0x00080000;
         private const int WS_EX_TOPMOST = 0x00000008;
         private const int WS_EX_TOOLWINDOW = 0x00000080;
+        private const int WS_EX_APPWINDOW = 0x00040000;
         private const int GWLP_HWNDPARENT = -8;
 
         [LibraryImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]

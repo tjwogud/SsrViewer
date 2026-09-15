@@ -27,7 +27,7 @@ namespace SsrViewer
                     window.StartPosition = FormStartPosition.Manual;
                     window.Location = nextLocation.Value;
                 }
-                Application.Run(window);
+                window.ShowDialog();
             }
         }
 
