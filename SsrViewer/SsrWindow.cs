@@ -63,6 +63,7 @@ namespace SsrViewer
             get
             {
                 CreateParams cp = base.CreateParams;
+                cp.ExStyle |= WS_EX_TOPMOST;
                 cp.ExStyle |= WS_EX_LAYERED;
                 cp.ExStyle |= WS_EX_TOOLWINDOW;
                 cp.ExStyle &= ~WS_EX_APPWINDOW;
@@ -144,10 +145,6 @@ namespace SsrViewer
 
             if (voices.TryGetValue("Greet", out var player))
                 player.Play();
-
-            TopMost = true;
-            BringToFront();
-            Activate();
         }
 
         private bool drag;
@@ -190,7 +187,7 @@ namespace SsrViewer
             {
                 animationState.SetAnimation(0, "Relax", true);
                 selected = null;
-                SetWindowLongPtr(Handle, GWLP_HWNDPARENT, 0);
+                Owner = null;
             }
         }
 
@@ -210,7 +207,7 @@ namespace SsrViewer
 
                 if (selected != null)
                 {
-                    SetWindowLongPtr(Handle, GWLP_HWNDPARENT, selected.Handle);
+                    Owner = selected;
                     FollowFurnitureIfYouCan(selected);
                     switch (selected.GetFType())
                     {

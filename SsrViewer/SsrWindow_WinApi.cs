@@ -152,25 +152,5 @@ namespace SsrViewer
             DeleteDC(memoryDc);
             ReleaseDC(IntPtr.Zero, screenDc);
         }
-
-        private const int WM_NCLBUTTONDOWN = 0xA1;
-        private const int HTCAPTION = 0x2;
-
-        [LibraryImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static partial bool ReleaseCapture();
-
-        [LibraryImport("user32.dll", EntryPoint = "SendMessageW")]
-        private static partial IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
-
-        private const int HWND_TOPMOST = -1;
-        private const int HWND_NOTOPMOST = -2;
-
-        private const uint SWP_NOSIZE = 0x0001;
-        private const uint SWP_NOMOVE = 0x0002;
-
-        [LibraryImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static partial bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
     }
 }
