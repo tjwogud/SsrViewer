@@ -110,6 +110,8 @@ namespace SsrViewer
             animationState.Apply(skeleton);
 
             skeleton.UpdateWorldTransform();
+
+            animationState.Data.DefaultMix = 0.1f;
         }
 
         private void CreateFramebuffer(int width, int height)
