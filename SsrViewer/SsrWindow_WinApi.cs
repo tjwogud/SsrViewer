@@ -144,15 +144,7 @@ namespace SsrViewer
             };
 
             var result = UpdateLayeredWindow(Handle, screenDc, ref dst, ref size,
-                memoryDc, ref src, 0, ref blend, ULW_ALPHA); 
-            
-            if (!result)
-            {
-                int error = Marshal.GetLastWin32Error();
-                throw new InvalidOperationException(
-                    $"UpdateLayeredWindow failed. Win32 error: {error}"
-                );
-            }
+                memoryDc, ref src, 0, ref blend, ULW_ALPHA);
 
             SelectObject(memoryDc, oldBitmap);
             DeleteObject(bitmapHandle);
@@ -179,14 +171,5 @@ namespace SsrViewer
         [LibraryImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
         private static partial bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
-
-        [LibraryImport("gdi32.dll", EntryPoint = "GetDeviceCaps", SetLastError = true)]
-        private static partial int GetDeviceCaps(nint hdc, int nIndex);
-
-        public static Point GetDesktopSize()
-        {
-            var desktop = GetDC(0);
-            return new(GetDeviceCaps(desktop, 118), GetDeviceCaps(desktop, 117));
-        }
     }
 }

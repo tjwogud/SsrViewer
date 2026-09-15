@@ -326,9 +326,7 @@ namespace SsrViewer
 
                 menu.Items.Add("Exit").Click += (s, e) => Close();
 
-                var cursorPosition = Control.MousePosition;
-
-                menu.Show(cursorPosition);
+                menu.Show(MousePosition);
             }
         }
 
