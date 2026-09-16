@@ -112,6 +112,20 @@ namespace SsrViewer
             skeleton.UpdateWorldTransform();
 
             animationState.Data.DefaultMix = 0.1f;
+
+#if DEBUG
+            foreach (Slot slot in skeleton.DrawOrder)
+            {
+                if (slot.Attachment != null)
+                {
+                    if (slot.Attachment is RegionAttachment
+                     || slot.Attachment is MeshAttachment
+                     || slot.Attachment is ClippingAttachment)
+                        continue;
+                    Console.WriteLine($"Not implemented! (Name: {slot.Data.Name}, Type: {slot.Attachment.GetType()})");
+                }
+            }
+#endif
         }
 
         private void CreateFramebuffer(int width, int height)

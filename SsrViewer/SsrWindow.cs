@@ -427,6 +427,7 @@ namespace SsrViewer
 
             glForm.Close();
             timer.Stop();
+            timer.Dispose();
         }
     }
 }
