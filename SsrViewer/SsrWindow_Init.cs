@@ -213,28 +213,30 @@ namespace SsrViewer
             fboDepth = 0;
         }
 
-        private static readonly Dictionary<int, string> voiceId = new()
-        {
-            { 33, "Spawn" },
-            { 34, "Interact" },
-            { 36, "Special" },
-            { 42, "Greet" }
-        };
-
         private const string lang = "jp";
+
+        private enum Voice
+        {
+            Spawn = 33,
+            Interact = 34,
+            Special = 36,
+            Greet = 42
+        }
 
         private void LoadVoices()
         {
             if (voiceDir == null) return;
             foreach (string voicePath in Directory.GetFiles(Path.Combine(voiceDir, lang), "*.wav"))
             {
-                int id = int.Parse(Path.GetFileNameWithoutExtension(voicePath)[3..]);
-                if (voiceId.TryGetValue(id, out string? strId))
+                var id = (Voice)int.Parse(Path.GetFileNameWithoutExtension(voicePath)[3..]);
+                if (Enum.IsDefined(id))
                 {
                     var player = new SoundPlayer(voicePath);
-                    voices[strId] = player;
+                    voices[id] = player;
                 }
             }
+
+            allVoicesLoaded = Enum.GetValues<Voice>().All(voices.ContainsKey);
         }
 
         private void CreateWhiteTexture()

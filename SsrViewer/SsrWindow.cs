@@ -41,7 +41,8 @@ namespace SsrViewer
 
         private int whiteTexture;
 
-        private Dictionary<string, SoundPlayer> voices = [];
+        private Dictionary<Voice, SoundPlayer> voices = [];
+        private bool allVoicesLoaded;
 
         private static List<Furniture> furnitures = [];
 
@@ -109,6 +110,16 @@ namespace SsrViewer
             Instance = this;
         }
 
+        private bool PlayVoice(Voice id)
+        {
+            if (voices.TryGetValue(id, out var player))
+            {
+                player.Play();
+                return true;
+            }
+            return false;
+        }
+
         private void GLControl_Load(object? sender, EventArgs e)
         {
             glControl.MakeCurrent();
@@ -132,8 +143,7 @@ namespace SsrViewer
             timer.Start();
             lastUpdate = DateTime.UtcNow;
 
-            if (voices.TryGetValue("Greet", out var player))
-                player.Play();
+            PlayVoice(Voice.Greet);
         }
 
         private bool drag;
@@ -235,15 +245,13 @@ namespace SsrViewer
                     {
                         animationState.SetAnimation(0, specialAnimAvailable ? "Special" : "Interact", false);
 
-                        if (voices.TryGetValue("Special", out var player))
-                            player.Play();
+                        PlayVoice(Voice.Special);
                     }
                     else
                     {
                         animationState.SetAnimation(0, "Interact", false);
 
-                        if (voices.TryGetValue("Interact", out var player))
-                            player.Play();
+                        PlayVoice(Voice.Interact);
                     }
                     animationState.AddAnimation(0, "Relax", true, 0);
                 }
@@ -259,80 +267,88 @@ namespace SsrViewer
             }
             else if (e.Button == MouseButtons.Right)
             {
-                var menu = new ContextMenuStrip();
-
-                menu.Items.Add("Change Spine").Click += (s, e) =>
-                {
-                    var result = Program.SelectSpine();
-                    if (result == null) return;
-                    Program.OpenSsrWindow(result, Location);
-                    Close();
-                };
-
-                menu.Items.Add("Import Voices").Click += (s, e) =>
-                {
-                    var dialog = new FolderBrowserDialog();
-                    var result = dialog.ShowDialog();
-                    if (result != DialogResult.OK) return;
-                    voiceDir = dialog.SelectedPath;
-                    LoadVoices();
-                    if (voices.TryGetValue("Greet", out var player))
-                        player.Play();
-                };
-
-                menu.Items.Add(new ToolStripSeparator());
-
-                void SpawnFurniture(Furniture.Type type)
-                {
-                    var thread = new Thread(() =>
-                    {
-                        var chair = new Furniture(type);
-                        lock (furnitures)
-                            furnitures.Add(chair);
-                        chair.ShowDialog();
-                    });
-                    thread.SetApartmentState(ApartmentState.STA);
-                    thread.IsBackground = true;
-                    thread.Start();
-                }
-
-                var scaleDropdown = new ToolStripMenuItem("Change Scale");
-
-                for (int i = 25; i <= 150; i += 25)
-                {
-                    int captured = i;
-                    var item = scaleDropdown.DropDownItems.Add($"{i}%");
-                    item.Click += (s, e) => ChangeScale(captured / 100f);
-                    if (i == SsrScale * 100)
-                    {
-                        item.Image = Resources.check;
-                    }
-                }
-
-                var custom = new ToolStripTextBox("Custom");
-                custom.KeyDown += (s, e) =>
-                {
-                    if (e.KeyCode != System.Windows.Forms.Keys.Enter) return;
-                    if (!int.TryParse(custom.Text, out int i) || i <= 0) return;
-                    ChangeScale(i / 100f);
-                };
-                custom.TextBox.BorderStyle = BorderStyle.FixedSingle;
-                scaleDropdown.DropDownItems.Add(custom);
-
-                menu.Items.Add(scaleDropdown);
-
-                menu.Items.Add(new ToolStripSeparator());
-
-                menu.Items.Add("Spawn Chair").Click += (s, e) => SpawnFurniture(Furniture.Type.Chair);
-
-                menu.Items.Add("Spawn Bed").Click += (s, e) => SpawnFurniture(Furniture.Type.Bed);
-
-                menu.Items.Add(new ToolStripSeparator());
-
-                menu.Items.Add("Exit").Click += (s, e) => Close();
-
-                menu.Show(MousePosition);
+                OpenContextMenu();
             }
+        }
+
+        private void OpenContextMenu(Point? position = null)
+        {
+            var menu = new ContextMenuStrip();
+
+            menu.Items.Add("Change Spine").Click += (s, e) =>
+            {
+                var result = Program.SelectSpine();
+                if (result == null) return;
+                Program.OpenSsrWindow(result, Location);
+                Close();
+            };
+
+            var importVoices = menu.Items.Add("Import Voices");
+            importVoices.Click += (s, e) =>
+            {
+                var dialog = new FolderBrowserDialog();
+                var result = dialog.ShowDialog();
+                if (result != DialogResult.OK) return;
+                voiceDir = dialog.SelectedPath;
+                LoadVoices();
+                PlayVoice(Voice.Greet);
+            };
+
+            if (allVoicesLoaded)
+                importVoices.Enabled = false;
+
+            menu.Items.Add(new ToolStripSeparator());
+
+            void SpawnFurniture(Furniture.Type type)
+            {
+                var thread = new Thread(() =>
+                {
+                    var chair = new Furniture(type);
+                    lock (furnitures)
+                        furnitures.Add(chair);
+                    chair.ShowDialog();
+                });
+                thread.SetApartmentState(ApartmentState.STA);
+                thread.IsBackground = true;
+                thread.Start();
+            }
+
+            var scaleDropdown = new ToolStripMenuItem("Change Scale");
+
+            for (int i = 25; i <= 150; i += 25)
+            {
+                int captured = i;
+                var item = scaleDropdown.DropDownItems.Add($"{i}%");
+                item.Click += (s, e) => ChangeScale(captured / 100f);
+                if (i == SsrScale * 100)
+                {
+                    item.Image = Resources.check;
+                }
+            }
+
+            var custom = new ToolStripTextBox("Custom");
+            custom.KeyDown += (s, e) =>
+            {
+                if (e.KeyCode != Keys.Enter) return;
+                if (!int.TryParse(custom.Text, out int i) || i <= 0) return;
+                ChangeScale(i / 100f);
+            };
+            custom.TextBox.BorderStyle = BorderStyle.FixedSingle;
+            scaleDropdown.DropDownItems.Add(custom);
+
+            menu.Items.Add(scaleDropdown);
+
+            menu.Items.Add(new ToolStripSeparator());
+
+            menu.Items.Add("Spawn Chair").Click += (s, e) => SpawnFurniture(Furniture.Type.Chair);
+
+            menu.Items.Add("Spawn Bed").Click += (s, e) => SpawnFurniture(Furniture.Type.Bed);
+
+            menu.Items.Add(new ToolStripSeparator());
+
+            menu.Items.Add("Exit").Click += (s, e) => Close();
+
+            menu.Show(position ?? MousePosition);
         }
 
         private void ChangeScale(float scale, bool updateLocation = true)
