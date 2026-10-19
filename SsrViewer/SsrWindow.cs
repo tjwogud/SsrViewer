@@ -128,18 +128,7 @@ namespace SsrViewer
 
             timer = new();
             timer.Interval = 1000 / 60;
-            timer.Tick += (s, e) =>
-            {
-                var now = DateTime.UtcNow;
-                var deltaTime = (now - lastUpdate).TotalSeconds;
-                lastUpdate = now;
-                animationState.Update((float)deltaTime);
-                animationState.Apply(skeleton);
-
-                skeleton.UpdateWorldTransform();
-
-                RenderFrame();
-            };
+            timer.Tick += OnUpdate;
             timer.Start();
             lastUpdate = DateTime.UtcNow;
 
@@ -155,6 +144,27 @@ namespace SsrViewer
 
         private const float specialGuageTime = 0.25f;
         private const float specialTime = 1;
+
+        private void OnUpdate(object? sender, EventArgs e)
+        {
+            var now = DateTime.UtcNow;
+            var deltaTime = (now - lastUpdate).TotalSeconds;
+            lastUpdate = now;
+            animationState.Update((float)deltaTime);
+            animationState.Apply(skeleton);
+
+            var current = animationState.GetCurrent(0);
+
+            if (current.MixingFrom != null && current.MixingFrom is var from)
+            {
+                float progress = current.MixDuration > 0 ? Math.Min(1, current.MixTime / current.MixDuration) : 1;
+                // i gotta do something here... maybe later...
+            }
+
+            skeleton.UpdateWorldTransform();
+
+            RenderFrame();
+        }
 
         protected override void OnMouseDown(MouseEventArgs e)
         {

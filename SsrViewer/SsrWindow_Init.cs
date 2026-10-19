@@ -111,7 +111,11 @@ namespace SsrViewer
 
             skeleton.UpdateWorldTransform();
 
-            animationState.Data.DefaultMix = 0.1f;
+            animationState.Data.SetMix("Move", "Sit", 0.1f);
+            animationState.Data.SetMix("Move", "Sleep", 0.1f);
+
+            animationState.Data.SetMix("Sit", "Move", 0.1f);
+            animationState.Data.SetMix("Sleep", "Move", 0.1f);
 
 #if DEBUG
             foreach (Slot slot in skeleton.DrawOrder)
