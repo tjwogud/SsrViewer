@@ -26,9 +26,11 @@ namespace SsrViewer
                 FormBorderStyle = FormBorderStyle.None;
                 ShowInTaskbar = false;
 
-                pictureBox = new();
-                pictureBox.Dock = DockStyle.Fill;
-                pictureBox.Visible = false;
+                pictureBox = new()
+                {
+                    Dock = DockStyle.Fill,
+                    Visible = false
+                };
                 Controls.Add(pictureBox);
 
                 BackColor = Color.LimeGreen;

@@ -298,23 +298,9 @@ namespace SsrViewer
                 Close();
             };
 
-            var importVoices = menu.Items.Add("Import Voices");
-            importVoices.Click += (s, e) =>
-            {
-                var dialog = new FolderBrowserDialog();
-                var result = dialog.ShowDialog();
-                if (result != DialogResult.OK) return;
-                voiceDir = dialog.SelectedPath;
-                LoadVoices();
-                PlayVoice(Voice.Greet);
-            };
-
-            if (allVoicesLoaded)
-                importVoices.Enabled = false;
-
             menu.Items.Add(new ToolStripSeparator());
 
-            void SpawnFurniture(Furniture.Type type)
+            static void SpawnFurniture(Furniture.Type type)
             {
                 var thread = new Thread(() =>
                 {
