@@ -95,6 +95,11 @@ namespace SsrViewer
                 return Location + new Point(Size.Width / 2, Size.Height / 2);
             }
 
+            public Point GetFloorLocation()
+            {
+                return Location + new Point(Size.Width / 2, Size.Height);
+            }
+
             private bool drag;
             private Point offset;
 

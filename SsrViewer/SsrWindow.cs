@@ -155,6 +155,8 @@ namespace SsrViewer
         private const float specialGuageTime = 0.25f;
         private const float specialTime = 1;
 
+        private int maxFurnitureOffset;
+
         private void OnUpdate(object? sender, EventArgs e)
         {
             var now = DateTime.UtcNow;
@@ -164,12 +166,24 @@ namespace SsrViewer
             animationState.Apply(skeleton);
 
             var current = animationState.GetCurrent(0);
-
+            
+            int furnitureOffset = 0;
             if (current.MixingFrom != null && current.MixingFrom is var from)
             {
                 float progress = current.MixDuration > 0 ? Math.Min(1, current.MixTime / current.MixDuration) : 1;
-                // i gotta do something here... maybe later...
+                if (current.Animation.Name == "Sit" || current.Animation.Name == "Sleep")
+                {
+                    furnitureOffset = (int)(maxFurnitureOffset * progress);
+                } else if (from.Animation.Name == "Sit" || from.Animation.Name == "Sleep")
+                {
+                    furnitureOffset = (int)(maxFurnitureOffset * (1 - progress));
+                }
+            } else if (current.Animation.Name == "Sit" || current.Animation.Name == "Sleep")
+            {
+                furnitureOffset = maxFurnitureOffset;
             }
+
+            skeleton.Y = -furnitureOffset;
 
             skeleton.UpdateWorldTransform();
 
@@ -182,31 +196,32 @@ namespace SsrViewer
             {
                 if (!animationState.GetCurrent(0).Loop)
                     return;
-                GetDownFromFurnitureIfYouCan();
                 drag = true;
                 offset = Location - MousePosition;
                 prevMouse = MousePosition;
                 moving = false;
-                specialStopwatch.Restart();
+                if (animationState.GetCurrent(0).Animation.Name == "Relax")
+                    specialStopwatch.Restart();
             }
         }
 
         private void FollowFurnitureIfYouCan(Furniture? furniture)
         {
-            if (furniture == null || selected != furniture) return;
+            if (furniture == null || selectedFurniture != furniture) return;
 
-            var pos = selected.GetCenterLocation();
-            Location = pos - CenterOffset;
+            var floorPos = selectedFurniture.GetFloorLocation();
+            Location = floorPos - CenterOffset;
+            maxFurnitureOffset = -selectedFurniture.Size.Height / 2;
         }
 
         private void GetDownFromFurnitureIfYouCan(Furniture? furniture = null)
         {
-            if (furniture != null && selected != furniture) return;
+            if (furniture != null && selectedFurniture != furniture) return;
             var cur = animationState.GetCurrent(0).Animation.Name;
             if (cur == "Sit" || cur == "Sleep")
             {
                 animationState.SetAnimation(0, "Relax", true);
-                selected = null;
+                selectedFurniture = null;
                 Owner = null;
             }
         }
@@ -225,11 +240,11 @@ namespace SsrViewer
                 if (!drag) return;
                 drag = false;
 
-                if (selected != null)
+                if (selectedFurniture != null)
                 {
-                    Owner = selected;
-                    FollowFurnitureIfYouCan(selected);
-                    switch (selected.GetFType())
+                    Owner = selectedFurniture;
+                    FollowFurnitureIfYouCan(selectedFurniture);
+                    switch (selectedFurniture.GetFType())
                     {
                         case Furniture.Type.Chair:
                             animationState.SetAnimation(0, "Sit", true);
@@ -379,10 +394,10 @@ namespace SsrViewer
                 furniture.UpdateScale();
             }
 
-            FollowFurnitureIfYouCan(selected);
+            FollowFurnitureIfYouCan(selectedFurniture);
         }
 
-        private Furniture? selected;
+        private Furniture? selectedFurniture;
 
         protected override void OnMouseMove(MouseEventArgs e)
         {
@@ -393,16 +408,18 @@ namespace SsrViewer
 
                 if (!moving) return;
 
+                GetDownFromFurnitureIfYouCan();
+
                 Location = offset + MousePosition;
                 if (animationState.GetCurrent(0).Animation.Name != "Move")
                     animationState.SetAnimation(0, "Move", true);
 
-                selected = furnitures.MinBy(f => (MousePosition - f.GetCenterLocation()).Length);
-                if (selected != null && (MousePosition  - selected.GetCenterLocation()).Length > 50)
-                    selected = null;
+                selectedFurniture = furnitures.MinBy(f => (MousePosition - f.GetCenterLocation()).Length);
+                if (selectedFurniture != null && (MousePosition  - selectedFurniture.GetCenterLocation()).Length > 50)
+                    selectedFurniture = null;
                 foreach (Furniture cur in furnitures)
                 {
-                    cur.ToggleHighlight(cur == selected);
+                    cur.ToggleHighlight(cur == selectedFurniture);
                 }
             }
         }
