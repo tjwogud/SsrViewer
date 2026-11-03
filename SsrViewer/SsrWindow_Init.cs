@@ -213,8 +213,6 @@ namespace SsrViewer
             fboDepth = 0;
         }
 
-        private const string lang = "jp";
-
         private enum Voice
         {
             Spawn = 33,
@@ -226,7 +224,7 @@ namespace SsrViewer
         private void LoadVoices()
         {
             if (voiceDir == null) return;
-            foreach (string voicePath in Directory.GetFiles(Path.Combine(voiceDir, lang), "*.wav"))
+            foreach (string voicePath in Directory.GetFiles(voiceDir, "*.wav"))
             {
                 var id = (Voice)int.Parse(Path.GetFileNameWithoutExtension(voicePath)[3..]);
                 if (Enum.IsDefined(id))

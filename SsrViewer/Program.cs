@@ -68,6 +68,9 @@ namespace SsrViewer
                     voiceDir = withoutSkin;
             }
 
+            if (voiceDir != null)
+                voiceDir = Path.Combine(voiceDir, "jp");
+
             OpenSsrWindow(skelPath, atlasPath, voiceDir, location);
         }
 
